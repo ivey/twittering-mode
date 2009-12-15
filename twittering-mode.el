@@ -2099,8 +2099,11 @@ return value of (funcall TO the-following-string the-match-data).
   (unless (symbolp function)
     (error (format "twittering-defcommand: `function' must be as symbol")))
   (setq command (format "%s" command))
-  (add-to-list 'twittering-commands
-	       (cons command function)))
+  (let ((entry (assoc command twittering-commands)))
+    (if entry
+	(setcdr entry function)
+      (add-to-list 'twittering-commands
+		   (cons command function)))))
 
 (defun twittering-command-prompt ()
   (interactive)

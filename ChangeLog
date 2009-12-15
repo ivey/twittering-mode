@@ -136,6 +136,8 @@
 2009-12-15  haya  <haya@starfish.unicus.ddo.jp>
 
 	* twittering-mode.el (twittering-status-not-blank-p): fix invalid escape sequence
+	(twittering-command-prompt): allow command
+	override
 
 2009-12-12  Alberto Garcia  <agarcia@igalia.com>
 
