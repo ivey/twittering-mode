@@ -518,6 +518,44 @@ Otherwise, they are retrieved by `url-retrieve'.")
   (twittering-stop)
   (twittering-start))
 
+(define-derived-mode twittering-edit-mode text-mode "Twittering Status Edit"
+  (use-local-map twittering-edit-mode-map))
+
+(defvar twittering-pre-edit-window-configuration nil)
+
+(when twittering-edit-mode-map
+  (let ((km twittering-edit-mode-map))
+    (define-key km (kbd "C-c C-c") 'twittering-edit-post-status)
+    (define-key km (kbd "C-c C-k") 'twittering-edit-cancel-status)))
+
+(defun twittering-edit-close ()
+  (kill-buffer (current-buffer))
+  (when twittering-pre-edit-window-configuration
+    (set-window-configuration twittering-pre-edit-window-configuration)
+    (setq twittering-pre-edit-window-configuration nil)))
+
+(defun twittering-edit-status ()
+  (interactive)
+  (let ((buf (generate-new-buffer "*twittering-edit*")))
+    (setq twittering-pre-edit-window-configuration
+	  (current-window-configuration))
+    (pop-to-buffer buf)
+    (twittering-edit-mode)
+    (message "C-c C-c to post, C-c C-k to cancel")))
+
+(defun twittering-edit-post-status ()
+  (interactive)
+  (let ((status (buffer-string)))
+    (when (twittering-status-not-blank-p status)
+      (let ((parameters `(("status" . ,status)
+			  ("source" . "twmode"))))
+	(twittering-http-post "twitter.com" "statuses/update" parameters))))
+  (twittering-edit-close))
+
+(defun twittering-edit-cancel-status ()
+  (interactive)
+  (twittering-edit-close))
+
 (defun twittering-update-mode-line ()
   "Update mode line"
   (let (enabled-options)
