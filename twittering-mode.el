@@ -124,9 +124,9 @@ tweets received when this hook is run.")
 (defvar twittering-jojo-mode nil)
 (make-variable-buffer-local 'twittering-jojo-mode)
 
-(defvar twittering-status-format "%i %s,  %@:\n  %t // from %f%L%r"
+(defvar twittering-status-format "%i %s,  %@:\n  %t // from %f%L%r%R"
   "Format string for rendering statuses.
-Ex. \"%i %s,  %@:\\n  %t // from %f%L%r\"
+Ex. \"%i %s,  %@:\\n  %t // from %f%L%r%R\"
 
 Items:
  %s - screen_name
@@ -136,6 +136,7 @@ Items:
  %l - location
  %L - \" [location]\"
  %r - \" in reply to user\"
+ %R - \" retweeted by user\"
  %u - url
  %j - user.id
  %p - protected?
@@ -1081,7 +1082,23 @@ If STATUS-DATUM is already in DATA-VAR, return nil. If not, return t."
 	   user-profile-image-url
 	   user-url
 	   user-protected
-	   regex-index)
+	   regex-index
+	   original-user-name
+	   original-user-screen-name)
+
+      (setq retweeted-status-data (cddr (assq 'retweeted_status status-data)))
+      (setq retweet? (and retweeted-status-data twittering-use-native-retweets))
+
+      (if retweet?
+	  (progn
+	    (setq original-status-data status-data
+		  original-user-data user-data
+		  status-data retweeted-status-data
+		  user-data (cddr (assq 'user status-data))
+		  original-user-screen-name (twittering-decode-html-entities
+					     (assq-get 'screen_name original-user-data))
+		  original-user-name (twittering-decode-html-entities
+				      (assq-get 'name original-user-data)))))
 
       (setq id (assq-get 'id status-data))
       (setq text (twittering-decode-html-entities
@@ -1108,7 +1125,7 @@ If STATUS-DATUM is already in DATA-VAR, return nil. If not, return t."
       (setq user-profile-image-url (assq-get 'profile_image_url user-data))
       (setq user-url (assq-get 'url user-data))
       (setq user-protected (assq-get 'protected user-data))
-
+      
       ;; make username clickable
       (add-text-properties
        0 (length user-name)
@@ -1199,7 +1216,9 @@ If STATUS-DATUM is already in DATA-VAR, return nil. If not, return t."
 	    user-description
 	    user-profile-image-url
 	    user-url
-	    user-protected)))))
+	    user-protected
+	    original-user-name
+	    original-user-screen-name)))))
 
 (defun twittering-xmltree-to-status (xmltree)
   (mapcar #'twittering-status-to-status-datum
@@ -1477,6 +1496,12 @@ following symbols;
 		      (concat " "
 			      (make-string-with-url-property
 			       in-reply-to-string url))))))
+	      ("R" .
+	       ,(let ((retweeted-by (attr 'original-user-screen-name)))
+		  (if retweeted-by
+		      (concat " (retweeted by " retweeted-by ")")
+		    "")))
+
 	      ("S" . ,(attr 'user-name))
 	      ("s" . ,(attr 'user-screen-name))
 	      ("t" . ,(attr 'text))
